@@ -106,3 +106,25 @@ Options to view results are:
 </details>
 
 *****
+
+<details>
+<summary>Video: 2 - Install Prometheus Stack in Kubernetes</summary>
+<br />
+
+### Setup Prometheus in an EKS Cluster
+How can we deploy the different parts of the Prometheus monitoring stack in a Kubernetes cluster? There are several ways of doing it.
+
+- Do it manually yoursef: Write all the configuration yaml files of the Prometheus components (like deployments, stateful sets, services, config maps, secrets etc. for Prometheus server, Alertmanager, Grafana, etc.) yourself and apply them to the cluster in the right order. This is a very inefficient way.
+- Use an Operator: Find a Prometheus operator (manages the combination of all Prometheus components as one unit) and deploy it in the K8s cluster using the configuration files of the operator.
+- Use a Helm chart to deploy an operator: Helm manages the initial setup of the operator and the operator will manage the running Prometheus setup.
+
+In the [first demo project](./demo-projects/1-install-prometheus-in-k8s/) we 
+- create an EKS cluster using eksctl,
+- deploy the microservices application we know from module 10 (Kubernetes) on that cluster,
+- deploy the Prometheus stack,
+- monitor the Kubernetes cluster,
+- and monitor the microservices application.
+
+</details>
+
+*****
