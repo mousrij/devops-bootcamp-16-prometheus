@@ -128,3 +128,45 @@ In the [first demo project](./demo-projects/1-install-prometheus-in-k8s/) we
 </details>
 
 *****
+
+<details>
+<summary>Video: 3 - Data Visualization with Prometheus UI</summary>
+<br />
+
+With monitoring we want to notice when something unexpected happens, i.e. we want to observe anomalies (CPU spikes, insufficient storage, high load, unauthorized requests, etc.). And then we want to react accordingly. Visualizing the monitored data can help a lot in these tasks.
+
+### Prometheus UI
+After having deployed the Prometheus monitoring stack, you can setup port forwarding for the service `service/monitoring-kube-prometheus-prometheus`:
+
+```sh
+kubectl port-forward service/monitoring-kube-prometheus-prometheus -n monitoring 9090:9090 &
+# [1] 20532
+# Forwarding from [::1]:9090 -> 9090
+``` 
+
+Open the browser and navigate to 'http://localhost:9090' to see the Prometheus Web UI.
+- To see the list of monitored components, open Status (in the menu bar) > Targets.
+- To see all the metrics being collected, press the 'earth'-button next to "Execute" on the top right of the Prometheus dashboard and select a metric. To filter a metric you can add the filter criteria within curly braces (e.g. `apiserver_request_total{verb="GET"}`). 
+- To see the configuration, open Status > Configuration. The `scrape_configs` section within the configuration contains a list of jobs:
+
+```yaml
+...
+scrape_configs:
+- job_name: serviceMonitor/monitoring/monitoring-kube-prometheus-alertmanager/0
+  honor_timestamps: true
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  metrics_path: /metrics
+  scheme: http
+  follow_redirects: true
+  enable_http2: true
+  ...
+```
+
+What is the concept of a `job` in Prometheus? A target may have multiple endpoints (aka instances). And a collection of such instances with the same purpose is called a 'job'. 
+
+Prometheus UI can be helpful to debug the configuration. But it is not really helpful in visualizing anomalies. Grafana, which is discussed in the next video, is much better for that purpose.
+
+</details>
+
+*****
