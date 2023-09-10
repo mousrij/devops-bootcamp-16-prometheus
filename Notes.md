@@ -139,7 +139,7 @@ With monitoring we want to notice when something unexpected happens, i.e. we wan
 After having deployed the Prometheus monitoring stack, you can setup port forwarding for the service `service/monitoring-kube-prometheus-prometheus`:
 
 ```sh
-kubectl port-forward service/monitoring-kube-prometheus-prometheus -n monitoring 9090:9090 &
+kubectl port-forward service/monitoring-kube-prometheus-prometheus -n monitoring 9090:9090
 # [1] 20532
 # Forwarding from [::1]:9090 -> 9090
 ``` 
@@ -166,6 +166,86 @@ scrape_configs:
 What is the concept of a `job` in Prometheus? A target may have multiple endpoints (aka instances). And a collection of such instances with the same purpose is called a 'job'. 
 
 Prometheus UI can be helpful to debug the configuration. But it is not really helpful in visualizing anomalies. Grafana, which is discussed in the next video, is much better for that purpose.
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 4 - Introduction to Grafana</summary>
+<br />
+
+### Introduction to the Grafana UI
+Grafana is a powerful open source visualization and analytics software. It was already deployed with the Prometheus Operator Helm Chart.
+
+List the services in the 'monitoring' namespace to get information about the Grafana service:
+```sh
+kubectl get services -n monitoring
+# NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+# alertmanager-operated                     ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP   2d
+# monitoring-grafana                        ClusterIP   10.100.22.92     <none>        80/TCP                       2d
+# monitoring-kube-prometheus-alertmanager   ClusterIP   10.100.214.211   <none>        9093/TCP,8080/TCP            2d
+# monitoring-kube-prometheus-operator       ClusterIP   10.100.79.107    <none>        443/TCP                      2d
+# monitoring-kube-prometheus-prometheus     ClusterIP   10.100.145.159   <none>        9090/TCP,8080/TCP            2d
+# monitoring-kube-state-metrics             ClusterIP   10.100.117.112   <none>        8080/TCP                     2d
+# monitoring-prometheus-node-exporter       ClusterIP   10.100.141.223   <none>        9100/TCP                     2d
+# prometheus-operated                       ClusterIP   None             <none>        9090/TCP                     2d
+```
+
+As you see the 'monitoring-grafana' service is listening on port 80. So lets setup port forwarding for this service:
+
+```sh
+kubectl port-forward service/monitoring-grafana -n monitoring 8080:80
+# [2] 22356
+# Forwarding from [::1]:8080 -> 3000
+``` 
+
+Open the browser and navigate to 'http://localhost:8080' to get to the login page of Grafana. The Helm chart of Prometheus stack is configured with login credentials. The username is 'admin' and the password is 'prom-operator'.
+
+The Grafana UI is made up of dashboards. A dashboard is a set of one or more panels. Toggle the hamburger menu on the top left and select 'Dashboards' to open a list of dashboards already configured by the Helm chart. Dashboards are grouped into folders ('General' is the only folder right now). The get a first impression, open the 'Kubernetes / Compute Resources / Cluster' dashboard. 
+
+As you see, a dashboard is a set of one or more panels. It is organized into one or more rows. Rows are logical dividers within a dashboard. They are used to group panels together.
+
+Panel are the basic visualization building blocks in Grafana. They are composed by a query and a visualization. Each panel has a query editor specific to the data source selected in the panel. A panel can be moved and resized within a dashboard.
+
+you can create your own dashboard if you want or you can edit existing ones (e.g. adding / removing panels).
+
+Using the time range selector in the upper right you can zoom in or out in a graph. To zoom in you can also directly select the time frame of interest in a displayed graph.
+
+In the right upper corner of each panel you'll find a 3-dot menu providing action like 'Edit', where you can edit the PromQL expressions used to collect the metrics the panel is based on. You may also choose another chart type.
+
+### Create your own Dashboard
+Navigate to Home > Dashboards, press the blue "New" button and select "New dashboard". Press "Add visualization" and select the Prometheus data source. In the metrics explorer you can select a metric, e.g. `cluster:node_cpu:sum_rate5m`. Press "Run queries" to display the graph. Press "Apply" to put the visualization on your new dashboard. Using the "Add" button you can add new rows or visualizations to the dashboard.
+
+### Test Anomalies
+To force a CPU spike that can be analyzed in Grafana, we are going to deploy a pod in the cluster, that sends a lot of requests to the endpoint of our online shop application. Execute the following command:
+```sh
+kubectl run curl-test --image=radial/busyboxplus:curl -i --tty --rm
+[ root@curl-test:/ ]$ vi test.sh
+# add the following content in vi:
+for i in $(seq 1 10000)
+do
+  curl http://aef508a483cb942da8affab91f564595-502614928.eu-central-1.elb.amazonaws.com > text.txt
+done
+# save the file and make it executable
+chmod +x test.sh
+
+# run the script
+./test.sh
+
+# after the script has ended (ca. 5min) exit the pod
+exit
+```
+
+Now you can have a look at the dashboards `Node Exporter / Nodes`, `Kubernetes / Compute Resources / Cluster`, `Kubernetes / Compute Resources / Namespace (Workloads)`, `Kubernetes / Compute Resources / Node (Pods)` or `Kubernetes / Compute Resources / Pod` to see the spike in CPU usage and find out which microservice contributed the biggest part of this CPU usage.
+
+### Configure Users & Data Sources
+As an admin user you can manage teams and users in Grafana. Open the hamburger menu in the top left corner and select 'Administration > Users' or 'Administration > Teams'.
+
+To manage the datasources (endpoints Grafana uses to collect its data), open the hamburger menu in the top left corner and select 'Connections > Add new connection' or 'Connections > Data sources'. In the dashboards you can only visualize data coming from one of the configured data sources.
+
+In the current Grafana setup configured by the Helm chart, there are two data sources: 'Prometheus' (= default) with the endpoint http://monitoring-kube-prometheus-prometheus.monitoring:9090 and 'Alertmanager' with the endpoint http://monitoring-kube-prometheus-alertmanager.monitoring:9093/.
+
 
 </details>
 
