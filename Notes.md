@@ -217,6 +217,8 @@ In the right upper corner of each panel you'll find a 3-dot menu providing actio
 ### Create your own Dashboard
 Navigate to Home > Dashboards, press the blue "New" button and select "New dashboard". Press "Add visualization" and select the Prometheus data source. In the metrics explorer you can select a metric, e.g. `cluster:node_cpu:sum_rate5m`. Press "Run queries" to display the graph. Press "Apply" to put the visualization on your new dashboard. Using the "Add" button you can add new rows or visualizations to the dashboard.
 
+See [Grafana Documentation](https://grafana.com/docs/grafana/latest/dashboards/)
+
 ### Test Anomalies
 To force a CPU spike that can be analyzed in Grafana, we are going to deploy a pod in the cluster, that sends a lot of requests to the endpoint of our online shop application. Execute the following command:
 ```sh
@@ -246,6 +248,56 @@ To manage the datasources (endpoints Grafana uses to collect its data), open the
 
 In the current Grafana setup configured by the Helm chart, there are two data sources: 'Prometheus' (= default) with the endpoint http://monitoring-kube-prometheus-prometheus.monitoring:9090 and 'Alertmanager' with the endpoint http://monitoring-kube-prometheus-alertmanager.monitoring:9093/.
 
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 5 - Alert Rules in Prometheus</summary>
+<br />
+
+Instead of constantly checking the metrics visualization, you want to get notified when something special happens. Only then you will check your dashboards. So we need to configure the monitoring stack to notify us whenever something unexpected happens.
+
+Alerting with Prometheus is separated into 2 parts:
+- 1. Alerting rules in Prometheus server send alerts to an Alertmanager
+- 2. Alertmanager then manages (deduplicating, grouping, routing) those alerts, including sending out notifications
+
+Main steps to setup alerting and notifications:
+- Setup and configure the Alertmanager
+- Configure Prometheus to talk to the Alertmanager
+- Create alerting rules in Prometheus
+
+Prometheus server and Alertmanager each have their own configuration file.
+
+See [Prometheus Alerting Documentation](https://prometheus.io/docs/alerting/latest/overview/)
+
+### Examine existing alert rules
+Existing alert rules can inspect on Prometheus UI > Alerts. The first one looks like this:
+```yaml
+name: AlertmanagerFailedReload
+expr: max_over_time(alertmanager_config_last_reload_successful{job="monitoring-kube-prometheus-alertmanager",namespace="monitoring"}[5m]) == 0
+for: 10m
+labels:
+   severity: critical
+annotations:
+   description: Configuration has failed to load for {{ $labels.namespace }}/{{ $labels.pod}}.
+   runbook_url: https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerfailedreload
+   summary: Reloading an Alertmanager configuration has failed.
+```
+
+`expr` is a PromQL expression. It contains a metric (`alertmanager_config_last_reload_successful`), a filter applied to that metric (`{job="monitoring-kube-prometheus-alertmanager",namespace="monitoring"}`) and a function applied on the filtered metric (`max_over_time(...[5m])`, [5m] is a parameter of the function).
+
+`severity` let's you define how important/severe the problem is.\
+(By the way: You may define your own custom labels to group alert rules and select them based on this grouping.)
+
+`for` lets you define a duration Prometheus is waiting before it fires an alert if the problem still exists after that duration.
+
+`description` specifies the alert message that will be sent. `$labels` references the metric attributes (that can be used to filter the metric).
+
+`runbook_url` points to a web page describing the alert rule (including tips on how to fix the problem if it occurs).
+
+`summary` holds a short explanation of the alert rule.
 
 </details>
 
