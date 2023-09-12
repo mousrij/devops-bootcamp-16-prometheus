@@ -279,11 +279,11 @@ name: AlertmanagerFailedReload
 expr: max_over_time(alertmanager_config_last_reload_successful{job="monitoring-kube-prometheus-alertmanager",namespace="monitoring"}[5m]) == 0
 for: 10m
 labels:
-   severity: critical
+  severity: critical
 annotations:
-   description: Configuration has failed to load for {{ $labels.namespace }}/{{ $labels.pod}}.
-   runbook_url: https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerfailedreload
-   summary: Reloading an Alertmanager configuration has failed.
+  description: Configuration has failed to load for {{ $labels.namespace }}/{{ $labels.pod}}.
+  runbook_url: https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerfailedreload
+  summary: Reloading an Alertmanager configuration has failed.
 ```
 
 `expr` is a PromQL expression. It contains a metric (`alertmanager_config_last_reload_successful`), a filter applied to that metric (`{job="monitoring-kube-prometheus-alertmanager",namespace="monitoring"}`) and a function applied on the filtered metric (`max_over_time(...[5m])`, [5m] is a parameter of the function).
@@ -298,6 +298,22 @@ annotations:
 `runbook_url` points to a web page describing the alert rule (including tips on how to fix the problem if it occurs).
 
 `summary` holds a short explanation of the alert rule.
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 6, 7, 8 - Create own Alert Rules</summary>
+<br />
+
+Let's say we want to get an alert 
+- when the CPU usage exceeds 50% (based on the Grafana visualization we saw that normally the CPU usage is between 20 and 40%)
+- or when a Pod cannot start.
+
+How do we configure according alert rules?
+
+See [demo project #2](./demo-projects/2-alerting/)
 
 </details>
 

@@ -10,3 +10,4 @@ It also containes [exercises](./exercises/Exercises.md) for this module.
 ### Demo Projects
 And finally it contains the following demo projects:
 - [Install Prometheus Stack in Kubernetes](./demo-projects/1-install-prometheus-in-k8s/)
+- [Configure Alerting](./demo-projects/2-alerting/)
