@@ -313,7 +313,105 @@ Let's say we want to get an alert
 
 How do we configure according alert rules?
 
-See [demo project #2](./demo-projects/2-alerting/)
+See the first part of [demo project #2](./demo-projects/2-alerting/).
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 9 - Introduction to Alertmanager</summary>
+<br />
+
+When a Prometheus alerting rule is in 'firing' state, it means that Prometheus is sending the alert to the alertmanager. The alertmanager then dispatches notifications about the alert. It takes care of deduplicating, grouping and routing the alerts to the correct receiver integration.
+
+Alertmanager is an application on its own and thus has its own configuration file. It also has a simple UI, which can be accessed after doing the following port forwarding:
+
+```sh
+kubectl port-forward svc/monitoring-kube-prometheus-alertmanager -n monitoring 9093:9093
+```
+
+Select 'Status' to get some status information as well as the current configuration:
+
+```yaml
+global:
+  resolve_timeout: 5m
+  http_config:
+    follow_redirects: true
+    enable_http2: true
+  smtp_hello: localhost
+  smtp_require_tls: true
+  pagerduty_url: https://events.pagerduty.com/v2/enqueue
+  opsgenie_api_url: https://api.opsgenie.com/
+  wechat_api_url: https://qyapi.weixin.qq.com/cgi-bin/
+  victorops_api_url: https://alert.victorops.com/integrations/generic/20131114/alert/
+  telegram_api_url: https://api.telegram.org
+  webex_api_url: https://webexapis.com/v1/messages
+route:
+  receiver: "null"  # <-- global receiver definition
+  group_by:
+  - namespace
+  continue: false
+  routes:           # <-- receivers for specific alerts
+  - receiver: "null"
+    matchers:
+    - alertname=~"InfoInhibitor|Watchdog"  # <-- label=value
+    continue: false
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h  # <-- deduplication
+inhibit_rules:
+- source_matchers:
+  - severity="critical"
+  target_matchers:
+  - severity=~"warning|info"
+  equal:
+  - namespace
+  - alertname
+- source_matchers:
+  - severity="warning"
+  target_matchers:
+  - severity="info"
+  equal:
+  - namespace
+  - alertname
+- source_matchers:
+  - alertname="InfoInhibitor"
+  target_matchers:
+  - severity="info"
+  equal:
+  - namespace
+receivers:
+- name: "null"
+templates:
+- /etc/alertmanager/config/*.tmpl
+```
+
+The main sections of the alertmanager configuration file are:
+- `global`: parameters that are valid in all other configuration contexts
+- `route`: defines which alerts are dispatched to which receiver; only receivers declared in the `receivers` section may be referenced here
+- `inhibit_rules`
+- `receivers`: defines the receivers (notification integrations); only 
+- `templates`
+
+As you can see, the only receiver configured by default is the "null" receiver. That's why no notifications were sent to anywhere even though Prometheus was firing alerts.
+
+For each alert you can define its own receiver. For example:
+- send all K8s cluster related issues to admin email
+- send all application related issues to developer team's slack channel
+This is configured in the `route` section.
+
+</details>
+
+*****
+
+<details>
+<summary>Video:  10 - Configure Alertmanager with Email Receivers</summary>
+<br />
+
+We now want to configure an email receiver for the two alert rules.
+
+See the second part of [demo project #2](./demo-projects/2-alerting/).
 
 </details>
 
