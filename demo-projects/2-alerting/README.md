@@ -139,3 +139,120 @@ kubectl delete pod cpustress
 ```
 
 #### Steps to configure Alertmanager with Email Receiver
+When you inspect the file [alertmanager.yaml](../1-install-prometheus-in-k8s/prometheus-stack/alertmanager.yaml) we created in demo project #1 by inspecting the stateful-set `alertmanager-monitoring-kube-prometheus-alertmanager`, you can find a volume called `config-volume` and see that it's holding the value of the Secret `alertmanager-monitoring-kube-prometheus-alertmanager-generated`. Here we can find the alertmanager configuration:
+
+```sh
+kubectl get secret alertmanager-monitoring-kube-prometheus-alertmanager-generated -n monitoring -o yaml | less
+# apiVersion: v1
+# data:
+#   alertmanager.yaml.gz: H4sIAAAAAAAA/7xSy07DMBC8+ytWPSKV8BCXSHxAv4BjtDUbZyU/wnqdqlLFtyMnUFKJCk5cZ2d3xjN2Pu3RtwZAKCc/UaccKBVt4SkYSUVpGVriiaSFTSzebwyAk1TGbn+s4y1EDJRHtFTJdSsv+A+LAAHVDiQzpZLQk2i9AM/vsNnFPu3iwHvWJKeXyn1N7lvygKwtPN7lM8JRSSb0s+dqdiTUFXr/MBheLnZSfPW2BUVxpN3ayxYyTSSsx2rkgBI5uhPHPhmAnIpYusoHK6xs0RsAeitLppe5rB76uz78UfbT5X+ormqCi5KuiX+VP+dd4fMvUAqjR12aaEhtMx8PGNGRNDbFnl1zc6th9OYjAAD//xIx++qkAgAA
+#mkind: Secret
+# metadata:
+#   creationTimestamp: "2023-09-06T20:31:41Z"
+#   labels:
+#     managed-by: prometheus-operator
+#   name: alertmanager-monitoring-kube-prometheus-alertmanager-generated
+#   namespace: monitoring
+#   ownerReferences:
+#   - apiVersion: monitoring.coreos.com/v1
+#     blockOwnerDeletion: true
+#     controller: true
+#     kind: Alertmanager
+#     name: monitoring-kube-prometheus-alertmanager
+#     uid: 8095a848-9983-4c4e-bf88-b6eb6a169c0e
+#   resourceVersion: "4458"
+#   uid: 433fbe06-74c2-4162-a0ae-ac2630bcdca2
+# type: Opaque
+
+echo 'H4sIAAAAAAAA/7xSy07DMBC8+ytWPSKV8BCXSHxAv4BjtDUbZyU/wnqdqlLFtyMnUFKJCk5cZ2d3xjN2Pu3RtwZAKCc/UaccKBVt4SkYSUVpGVriiaSFTSzebwyAk1TGbn+s4y1EDJRHtFTJdSsv+A+LAAHVDiQzpZLQk2i9AM/vsNnFPu3iwHvWJKeXyn1N7lvygKwtPN7lM8JRSSb0s+dqdiTUFXr/MBheLnZSfPW2BUVxpN3ayxYyTSSsx2rkgBI5uhPHPhmAnIpYusoHK6xs0RsAeitLppe5rB76uz78UfbT5X+ormqCi5KuiX+VP+dd4fMvUAqjR12aaEhtMx8PGNGRNDbFnl1zc6th9OYjAAD//xIx++qkAgAA' | base64 -d | gunzip
+# global:
+#   resolve_timeout: 5m
+# route:
+#   receiver: "null"
+#   group_by:
+#   - namespace
+#   routes:
+#   - receiver: "null"
+#     matchers:
+#     - alertname =~ "InfoInhibitor|Watchdog"
+#   group_wait: 30s
+#   group_interval: 5m
+#   repeat_interval: 12h
+# inhibit_rules:
+# - target_matchers:
+#   - severity =~ warning|info
+#   source_matchers:
+#   - severity = critical
+#   equal:
+#   - namespace
+#   - alertname
+# - target_matchers:
+#   - severity = info
+#   source_matchers:
+#   - severity = warning
+#   equal:
+#   - namespace
+#   - alertname
+# - target_matchers:
+#   - severity = info
+#   source_matchers:
+#   - alertname = InfoInhibitor
+#   equal:
+#   - namespace
+# receivers:
+# - name: "null"
+# templates:
+# - /etc/alertmanager/config/*.tmpl
+```
+
+As you see this is pretty much the same content that was displayed in the Alertmanager UI. So this is were the default config comes from.
+
+But again we don't have to adjust this configuration directly, but rather use a custom K8s compontent `AlertmanagerConfig` that is made available by the Prometheus operator.
+
+So create a file called `alert-manager-configuration.yaml` and add the following content:
+```yaml
+apiVersion: monitoring.coreos.com/v1beta1  # <-- the version may change to v1 in the near future
+kind: AlertmanagerConfig
+metadata:
+  name: main-rules-alert-config
+  namespace: monitoring
+spec:
+  route:
+    receiver: 'email'
+    repeatInterval: 30m
+    routes:
+    - matchers:
+      - name: alertname
+        value: HostHighCpuLoad
+    - matchers:
+      - name: alertname
+        value: KubernetesPodCrashLooping
+      repeatInterval: 10m
+  receivers:
+  - name: 'email'
+    emailConfigs:
+    - to: 'email@example.come'
+      from: 'email@example.come'
+      smarthost: 'smtp.gmail.com:587'
+      authUsername: 'email@example.come'
+      authIdentity: 'email@example.come'
+      authPassword:
+       name: gmail-auth
+       key: password
+```
+
+Again to find out the structure of the `spec` attribute, check the [documentation](https://docs.openshift.com/container-platform/4.13/rest_api/monitoring_apis/alertmanagerconfig-monitoring-coreos-com-v1beta1.html) of the custom component `AlertmanagerConfig`.
+
+The `authPassword` attribute of the 'email' receiver configuration references a Secret called `gmail-auth` with an attribute `password`. So we have to create such a Secret. For that purpose add a file called `email-secret.yaml` with the following content:
+
+```yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata: 
+  name: gmail-auth
+  namespace: monitoring
+data:
+  password: <base64-encoded-value-of-my-gmail-account-password>
+```
+
