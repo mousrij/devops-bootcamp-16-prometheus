@@ -226,7 +226,7 @@ Components inside Prometheus, Alertmanager, Operator
 To see what's inside Prometheus, Alertmanager and Operator, execute 
 ```sh
 kubectl describe statefulset prometheus-monitoring-kube-prometheus-prometheus -n monitoring > prometheus-stack/prometheus.yaml
-kubectl describe statefulset prometheus-monitoring-kube-prometheus-prometheus -n monitoring > prometheus-stack/alertmanager.yaml
+kubectl describe statefulset alertmanager-monitoring-kube-prometheus-alertmanager -n monitoring > prometheus-stack/alertmanager.yaml
 kubectl describe deployment monitoring-kube-prometheus-operator -n monitoring > prometheus-stack/operator.yaml
 ```
 
