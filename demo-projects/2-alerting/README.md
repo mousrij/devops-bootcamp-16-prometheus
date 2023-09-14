@@ -62,7 +62,7 @@ spec:
         for: 2m
         labels:
           severity: warning
-          namespace: monitoring
+          namespace: monitoring  # <-- a matcher for this label is added when the AlertmanagerConfig is applied and reloaded
         annotations:
           description: "CPU load on host is over 50%\n Value = {{ $value }}\n Instance = {{ $labels.instance }}\n"
           summary: Host CPU load high.
@@ -211,7 +211,7 @@ But again we don't have to adjust this configuration directly, but rather use a 
 
 So create a file called `alert-manager-configuration.yaml` and add the following content:
 ```yaml
-apiVersion: monitoring.coreos.com/v1beta1  # <-- the version may change to v1 in the near future
+apiVersion: monitoring.coreos.com/v1alpha1  # <-- the version may change to v1 in the near future
 kind: AlertmanagerConfig
 metadata:
   name: main-rules-alert-config
@@ -253,6 +253,106 @@ metadata:
   name: gmail-auth
   namespace: monitoring
 data:
-  password: <base64-encoded-value-of-my-gmail-account-password>
+  password: <base64-encoded-value-of-the-generated-app-password>
 ```
 
+We use our gmail account as an SMTP server to send e-mails. For the alertmanager to be able to authenticate with the server we need to configure the account for 2 factor authentication and add/generate an app password which we will then use in the Secret referenced from the AlertmanagerConfig.
+
+Login to your gmail account, click on the profile circle in the right upper corner, press "Manage your Google Account", click on "Security" in the menu on the left, scroll down to the "How you sign in to Google" section and click on the "2-Step Verification" area, turn it on and configure a second factor if it is not yet activated. To generate an App password, type "App password" in the search bar at the top of the page, select 'App passwords', click on 'Choose app' > 'Other' and type in 'K8s Prometheus Alertmanager', click on "Generate", copy the value and write it into the above Secret configuration (base64 encoded).
+
+Apply the two configuration files to the K8s cluster:
+```sh
+kubectl apply -f email-secret.yaml
+kubectl apply -f alert-manager-configuration.yaml
+```
+
+Check the log of the alertmanager config-reloader:
+```sh
+kubectl logs alertmanager-monitoring-kube-prometheus-alertmanager-0 -n monitoring -c config-reloader
+# ...
+# level=info ts=2023-09-14T21:46:03.943082112Z caller=reloader.go:376 msg="Reload triggered" cfg_in=/etc/alertmanager/config/alertmanager.yaml.gz cfg_out=/etc/alertmanager/config_out/alertmanager.env.yaml watched_dirs=/etc/alertmanager/config
+```
+
+Open the Alertmanager UI and navigate to the status page to see the extended config:
+```yaml
+global:
+  resolve_timeout: 5m
+  http_config:
+    follow_redirects: true
+    enable_http2: true
+  smtp_hello: localhost
+  smtp_require_tls: true
+  pagerduty_url: https://events.pagerduty.com/v2/enqueue
+  opsgenie_api_url: https://api.opsgenie.com/
+  wechat_api_url: https://qyapi.weixin.qq.com/cgi-bin/
+  victorops_api_url: https://alert.victorops.com/integrations/generic/20131114/alert/
+  telegram_api_url: https://api.telegram.org
+  webex_api_url: https://webexapis.com/v1/messages
+route:
+  receiver: "null"
+  group_by:
+  - namespace
+  continue: false
+  routes:
+  - receiver: monitoring/main-rules-alert-config/email  # <-- ns/AlertmanagerConfig.metadata.name/receiver name
+    matchers:
+    - namespace="monitoring"  # <-- added automatically; that's why we had to add this label in the configuration file for the PrometheusRule
+    continue: true
+    routes:
+    - match:
+        alertname: HostHighCpuLoad
+      continue: false
+    - match:
+        alertname: KubernetesPodCrashLooping
+      continue: false
+      repeat_interval: 10m
+    repeat_interval: 30m
+  - receiver: "null"
+    matchers:
+    - alertname=~"InfoInhibitor|Watchdog"
+    continue: false
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+inhibit_rules:
+- source_matchers:
+  - severity="critical"
+  target_matchers:
+  - severity=~"warning|info"
+  equal:
+  - namespace
+  - alertname
+- source_matchers:
+  - severity="warning"
+  target_matchers:
+  - severity="info"
+  equal:
+  - namespace
+  - alertname
+- source_matchers:
+  - alertname="InfoInhibitor"
+  target_matchers:
+  - severity="info"
+  equal:
+  - namespace
+receivers:
+- name: "null"
+- name: monitoring/main-rules-alert-config/email  # <--
+  email_configs:
+  - send_resolved: false  # <-- if set to true, an email is sent when the problem has been resolved
+    to: felix.siegrist@gmail.com
+    from: alertmanager@prometheus.com
+    hello: localhost
+    smarthost: smtp.gmail.com:587
+    auth_username: felix.siegrist@gmail.com
+    auth_password: <secret>
+    auth_identity: felix.siegrist@gmail.com
+    headers:  # <--
+      From: alertmanager@prometheus.com
+      Subject: '{{ template "email.default.subject" . }}'
+      To: felix.siegrist@gmail.com
+    html: '{{ template "email.default.html" . }}'
+    require_tls: true
+templates:
+- /etc/alertmanager/config/*.tmpl
+```
