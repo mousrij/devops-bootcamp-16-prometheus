@@ -421,6 +421,11 @@ description = CPU load on host is over 50% Value = 98.43888888892252 Instance = 
 summary = Host CPU load high.
 ```
 
+If the alert was received and routed to the right receiver but you still don't get an e-mail, there might be a connection or authentication problem between the alertmanager and the smtp server. You may get more information about this problem by inspecting the log if the alertmanager:
+```sh
+kubectl logs alertmanager-monitoring-kube-prometheus-alertmanager-0 -n monitoring -c alertmanager
+```
+
 The `cpustress` pod is restarting each time it finished its work and stopped:
 
 ```sh
