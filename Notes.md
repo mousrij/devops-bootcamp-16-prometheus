@@ -416,3 +416,15 @@ See the second part of [demo project #2](./demo-projects/2-alerting/).
 </details>
 
 *****
+
+<details>
+<summary>Video:  11 - Trigger Alerts for Email Receiver</summary>
+<br />
+
+We now want to trigger alerts to test the email receiver.
+
+See the finish of [demo project #2](./demo-projects/2-alerting/).
+
+</details>
+
+*****

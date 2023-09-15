@@ -356,3 +356,146 @@ receivers:
 templates:
 - /etc/alertmanager/config/*.tmpl
 ```
+
+To test the email receiver we have to create some CPU load. We do this again using the `cpustress` tool:
+```sh
+kubectl run cpustress --image=containerstack/cpustress -- --cpu 4 --timeout 60s --metrics-brief
+# pod/cpustress created
+```
+
+After some time the average CPU load is high enough to trigger the firing of the 'HostHighCpuLoad' alert. In Prometheus UI we see, that the alert state has changed to 'FIRING'. The Alertmanager has an endpoint where you can retrieve the alerts it recently received:
+
+```txt
+http://localhost:9093/api/v2/alerts
+```
+
+This can be very useful for debugging purposes (e.g. if you don't receive an email and want to see, whether an alert has been received and whether it triggered the receiver or not). The returned JSON string contains the following object:
+
+```json
+  {
+    "annotations": {
+      "description": "CPU load on host is over 50%\n Value = 98.43888888892252\n Instance = 192.168.86.219:9100\n",
+      "summary": "Host CPU load high."
+    },
+    "endsAt": "2023-09-15T19:43:55.949Z",
+    "fingerprint": "f0a35342e1eb7639",
+    "receivers": [
+      {
+        "name": "monitoring/main-rules-alert-config/email"
+      }
+    ],
+    "startsAt": "2023-09-15T19:39:55.949Z",
+    "status": {
+      "inhibitedBy": [],
+      "silencedBy": [],
+      "state": "active"
+    },
+    "updatedAt": "2023-09-15T19:39:55.952Z",
+    "generatorURL": "http://monitoring-kube-prometheus-prometheus.monitoring:9090/graph?g0.expr=100+-+%28avg+by+%28instance%29+%28rate%28node_cpu_seconds_total%7Bmode%3D%22idle%22%7D%5B2m%5D%29%29+%2A+100%29+%3E+50&g0.tab=1",
+    "labels": {
+      "alertname": "HostHighCpuLoad",
+      "instance": "192.168.86.219:9100",
+      "namespace": "monitoring",
+      "prometheus": "monitoring/monitoring-kube-prometheus-prometheus",
+      "severity": "warning"
+    }
+  }
+```
+
+We see that the email receiver was selected and in our e-mail inbox we find an e-mail with the subject
+```txt
+[FIRING:1] monitoring (HostHighCpuLoad 192.168.25.138:9100 monitoring/monitoring-kube-prometheus-prometheus warning)
+```
+and the content
+```txt
+Content:
+[1] Firing
+Labels
+alertname = HostHighCpuLoad
+instance = 192.168.86.219:9100
+namespace = monitoring
+prometheus = monitoring/monitoring-kube-prometheus-prometheus
+severity = warning
+Annotations
+description = CPU load on host is over 50% Value = 98.43888888892252 Instance = 192.168.86.219:9100 
+summary = Host CPU load high.
+```
+
+The `cpustress` pod is restarting each time it finished its work and stopped:
+
+```sh
+kubectl get pods
+# NAME                                     READY   STATUS             RESTARTS        AGE
+# ...
+# cpustress                                0/1     CrashLoopBackOff   6 (3m12s ago)   11m
+# ...
+```
+
+After 6 restarts the second alert (`KubernetesPodCrashLooping`) is firing. The alertmanager endpoint 'http://localhost:9093/api/v2/alerts' now contains the following object:
+
+```json
+  {
+    "annotations": {
+      "description": "Pod cpustress is crash looping\n Value = 6",
+      "summary": "Kubernetes pod crash looping."
+    },
+    "endsAt": "2023-09-15T19:59:25.949Z",
+    "fingerprint": "7ce1e6e4c66ed194",
+    "receivers": [
+      {
+        "name": "monitoring/main-rules-alert-config/email"
+      }
+    ],
+    "startsAt": "2023-09-15T19:55:25.949Z",
+    "status": {
+      "inhibitedBy": [],
+      "silencedBy": [],
+      "state": "active"
+    },
+    "updatedAt": "2023-09-15T19:55:25.952Z",
+    "generatorURL": "http://monitoring-kube-prometheus-prometheus.monitoring:9090/graph?g0.expr=kube_pod_container_status_restarts_total+%3E+5&g0.tab=1",
+    "labels": {
+      "alertname": "KubernetesPodCrashLooping",
+      "container": "cpustress",
+      "endpoint": "http",
+      "instance": "192.168.2.83:8080",
+      "job": "kube-state-metrics",
+      "namespace": "monitoring",
+      "pod": "cpustress",
+      "prometheus": "monitoring/monitoring-kube-prometheus-prometheus",
+      "service": "monitoring-kube-state-metrics",
+      "severity": "critical",
+      "uid": "95574a40-f553-4084-8337-4d79a4cb5df3"
+    }
+  }
+```
+
+And we received a second e-mail with the subject
+```txt
+[FIRING:1] monitoring (KubernetesPodCrashLooping cpustress http 192.168.2.83:8080 kube-state-metrics cpustress monitoring/monitoring-kube-prometheus-prometheus monitoring-kube-state-metrics critical 95574a40-f553-4084-8337-4d79a4cb5df3)
+```
+
+and the content
+```txt
+[1] Firing
+Labels
+alertname = KubernetesPodCrashLooping
+container = cpustress
+endpoint = http
+instance = 192.168.2.83:8080
+job = kube-state-metrics
+namespace = monitoring
+pod = cpustress
+prometheus = monitoring/monitoring-kube-prometheus-prometheus
+service = monitoring-kube-state-metrics
+severity = critical
+uid = 95574a40-f553-4084-8337-4d79a4cb5df3
+Annotations
+description = Pod cpustress is crash looping Value = 6
+summary = Kubernetes pod crash looping.
+```
+
+Now we can delete the cpustress pod to stop the alerts:
+```sh
+kubectl delete pod cpustress
+```
