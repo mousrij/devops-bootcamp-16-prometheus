@@ -406,7 +406,7 @@ This is configured in the `route` section.
 *****
 
 <details>
-<summary>Video:  10 - Configure Alertmanager with Email Receivers</summary>
+<summary>Video: 10 - Configure Alertmanager with Email Receivers</summary>
 <br />
 
 We now want to configure an email receiver for the two alert rules.
@@ -418,12 +418,96 @@ See the second part of [demo project #2](./demo-projects/2-alerting/).
 *****
 
 <details>
-<summary>Video:  11 - Trigger Alerts for Email Receiver</summary>
+<summary>Video: 11 - Trigger Alerts for Email Receiver</summary>
 <br />
 
 We now want to trigger alerts to test the email receiver.
 
 See the finish of [demo project #2](./demo-projects/2-alerting/).
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 12 - Monitor Third-Party Applications</summary>
+<br />
+
+So far we are monitoring Kubernetes components, the resource consumption on the nodes and the Prometheus stack itself. But we still don't monitor our own application (the online shop microservices) or third-party applications like Redis. In this video we're going to learn how to monitor the latter.
+
+We do not just want to know whether the Redis pod is running, but rather monitor the Redis application itself within the pod. For this purpose there are [Prometheus Exporters](https://prometheus.io/docs/instrumenting/exporters/).
+
+An exporter gets metrics data from the service, translates these service-specific metrics to Prometheus understandable metrics and exposes these translated metrics under a `/metrics` endpoint. Prometheus then scrapes this endpoint.
+
+When we deploy a new exporter we need to tell Prometheus that there is a new endpoint to be scraped. This task can be automated by deploying a custom K8s component of kind `ServiceMonitor`. The ServiceMonitor component deployed together with the exporter just needs to have a label `release` with the value `monitoring` to be detected by Prometheus.
+
+```sh
+kubectl get servicemonitor -n monitoring
+# NAME                                                 AGE
+# monitoring-grafana                                   9d
+# monitoring-kube-prometheus-alertmanager              9d
+# monitoring-kube-prometheus-apiserver                 9d
+# monitoring-kube-prometheus-coredns                   9d
+# monitoring-kube-prometheus-kube-controller-manager   9d
+# monitoring-kube-prometheus-kube-etcd                 9d
+# monitoring-kube-prometheus-kube-proxy                9d
+# monitoring-kube-prometheus-kube-scheduler            9d
+# monitoring-kube-prometheus-kubelet                   9d
+# monitoring-kube-prometheus-operator                  9d
+# monitoring-kube-prometheus-prometheus                9d
+# monitoring-kube-state-metrics                        9d
+# monitoring-prometheus-node-exporter                  9d
+
+kubectl get servicemonitor monitoring-kube-prometheus-alertmanager -n monitoring -o yaml
+# apiVersion: monitoring.coreos.com/v1
+# kind: ServiceMonitor
+# metadata:
+#   annotations:
+#     meta.helm.sh/release-name: monitoring
+#     meta.helm.sh/release-namespace: monitoring
+#   creationTimestamp: "2023-09-06T20:31:35Z"
+#   generation: 1
+#   labels:
+#     app: kube-prometheus-stack-alertmanager
+#     app.kubernetes.io/instance: monitoring
+#     app.kubernetes.io/managed-by: Helm
+#     app.kubernetes.io/part-of: kube-prometheus-stack
+#     app.kubernetes.io/version: 50.3.1
+#     chart: kube-prometheus-stack-50.3.1
+#     heritage: Helm
+#     release: monitoring                                <--------
+#   name: monitoring-kube-prometheus-alertmanager
+#   namespace: monitoring
+#   resourceVersion: "4364"
+#   uid: 250f769e-94ab-4ab3-af28-27da82e66ed1
+# spec:
+#   endpoints:
+#   - enableHttp2: true
+#     path: /metrics
+#     port: http-web
+#   - path: /metrics
+#     port: reloader-web
+#   namespaceSelector:
+#     matchNames:
+#     - monitoring
+#   selector:
+#     matchLabels:
+#       app: kube-prometheus-stack-alertmanager
+#       release: monitoring
+#       self-monitor: "true"
+```
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 13 - Deploy Redis Exporter</summary>
+<br />
+
+In order to monitor a third-party application like Redis, we have to deploy an exporter for that application.
+
+See the first part of [demo project #3](./demo-projects/3-monitoring-third-party-applications/).
 
 </details>
 
