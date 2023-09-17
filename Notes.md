@@ -512,3 +512,17 @@ See the first part of [demo project #3](./demo-projects/3-monitoring-third-party
 </details>
 
 *****
+
+<details>
+<summary>Video: 14 - Alert Rules & Grafana Dashboard for Redis</summary>
+<br />
+
+We want to be alerted when Redis is down or when it is running out of connections.\
+See the second part of [demo project #3](./demo-projects/3-monitoring-third-party-applications/).
+
+To better analyze an issue we were alerted about, we want to visualize the metrics data in Grafana.\
+See the third part of [demo project #3](./demo-projects/3-monitoring-third-party-applications/).
+
+</details>
+
+*****

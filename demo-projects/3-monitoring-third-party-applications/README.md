@@ -123,7 +123,104 @@ kubectl get servicemonitor redis-exporter-prometheus-redis-exporter -o yaml
 Open the Prometheus UI in the browser and select Status > Targets. You should see a new target called 'serviceMonitor/default/redis-exporter-prometheus-redis-exporter/0 (1/1 up)' with a 'Last Scrape' time of something like '28.127s ago' which means that Prometheus detected the new metrics endpoint and successfully scraped it. If you type 'redis' into the query execution input field, you should see all the metrics starting with redis (make sure the 'Enable autocomplete' checkbox is checked), e.g. 'redis_connected_clients'.
 
 #### Steps to configure alert rules for Redis
+We want to be alerted when Redis is down or when it is running out of connections. We could write alert rules for these purposes on our own, or we can see if they are available in a public collection of already written useful alert rules:
+- [https://github.com/samber/awesome-prometheus-alerts](https://github.com/samber/awesome-prometheus-alerts)
+- [https://samber.github.io/awesome-prometheus-alerts/](https://samber.github.io/awesome-prometheus-alerts/)
 
+The rules in the [redis section](https://samber.github.io/awesome-prometheus-alerts/rules#redis) are based on the metrics provided by the redis exporter we used and can therefore be used in our deployment. The first rule `RedisDown` is what we need, so lets copy it, create a file called `redis-rules.yaml` and paste it in there:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: redis-rules
+  labels:
+    app: kube-prometheus-stack
+    release: monitoring
+spec:
+  groups:
+    - name: redis.rules
+      rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: Redis down (instance {{ $labels.instance }})
+          description: "Redis instance is down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+```
+
+The second rule we want to configure is the one called `RedisTooManyConnections`. It triggers an alert when more than 90% of the max allowed connection (configured in the redis configuration) are used. So lets copy that one too and add it to the `redis-rules.yaml` file:
+
+```yaml
+      - alert: RedisTooManyConnections
+        expr: redis_connected_clients / redis_config_maxclients * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Redis too many connections (instance {{ $labels.instance }})
+          description: "Redis is running out of connections (> 90% used)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+```
+
+Let's apply the rules to the K8s cluster:
+```sh
+kubectl apply -f redis-rules.yaml
+# prometheusrule.monitoring.coreos.com/redis-rules created
+
+kubectl get prometheusrules
+# NAME          AGE
+# redis-rules   4m24s
+```
+
+After some time you should see the new rules in the Prometheus UI (Alerts, redis.rules).
+
+Now let's trigger the "RedisDown" alert by stopping the redis pod:
+```sh
+kubectl scale deployment rediscart --replicas=0
+# deployment.apps/rediscart scaled
+```
+
+In the [values.yaml](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-redis-exporter/values.yaml) file of the redis-exporter helm chart we can see in the 'serviceMonitor' section that the default scrape interval is '30s'. So after 30 seconds we should see in the Prometheus UI (Alerts) that the RedisDown alert is firing.
+
+After restarting the redis pod with `kubectl scale deployment rediscart --replicas=1` and another 30 seconds, the alert state should go back to inactive.
 
 #### Steps to import Grafana dashboard for Redis
+To better analyze an issue we were alerted about, we want to visualize the metrics data in Grafana. As with the alert rules we can either manually create a Redis dashboard in Grafana ourselves, or we can use a public available Grafana dashboard for Redis metrics.
 
+On [Grafana Labs](https://grafana.com/grafana/dashboards/) you can look up existing dashboards. Search for 'redis' and make sure to select a dashboard that is based on the metrics of our [redis-exporter](https://github.com/oliver006/redis_exporter). In our case it is the ['Redis Dashboard for Prometheus Redis Exporter 1.x'](https://grafana.com/grafana/dashboards/763-redis-dashboard-for-prometheus-redis-exporter-1-x/). Copy the dashboard ID (763). Open the Grafana UI (http://localhost:8080/dashboards), click on the "+" button in the top right corner and select "Import dashboard". Paste the dashboard ID into the "Import via grafana.com" field and press "Load". Select "Prometheus" as the data source and press "Import".
+
+The new dashboard gets displayed. It is connected to the correct instance (192.168.1.149:9121), which you can verify via the following commands:
+
+```sh
+kubectl get services
+# NAME                                       TYPE           CLUSTER-IP       EXTERNAL-IP                                                                 PORT(S)        AGE
+# adservice                                  ClusterIP      10.100.22.140    <none>                                                                      9555/TCP       10d
+# ...
+# redis-exporter-prometheus-redis-exporter   ClusterIP      10.100.233.156   <none>                                                                      9121/TCP       13h
+# rediscart                                  ClusterIP      10.100.206.38    <none>                                                                      6379/TCP       10d
+# shippingservice                            ClusterIP      10.100.95.95     <none>                                                                      50051/TCP      10d
+
+kubectl describe service redis-exporter-prometheus-redis-exporter
+# Name:              redis-exporter-prometheus-redis-exporter
+# Namespace:         default
+# Labels:            app.kubernetes.io/instance=redis-exporter
+#                    app.kubernetes.io/managed-by=Helm
+#                    app.kubernetes.io/name=prometheus-redis-exporter
+#                    app.kubernetes.io/version=v1.54.0
+#                    helm.sh/chart=prometheus-redis-exporter-5.6.0
+# Annotations:       meta.helm.sh/release-name: redis-exporter
+#                    meta.helm.sh/release-namespace: default
+# Selector:          app.kubernetes.io/instance=redis-exporter,app.kubernetes.io/name=prometheus-redis-exporter
+# Type:              ClusterIP
+# IP Family Policy:  SingleStack
+# IP Families:       IPv4
+# IP:                10.100.233.156
+# IPs:               10.100.233.156
+# Port:              redis-exporter  9121/TCP
+# TargetPort:        exporter-port/TCP
+# Endpoints:         192.168.1.149:9121           <---------------
+# Session Affinity:  None
+# Events:            <none>
+```
