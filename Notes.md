@@ -526,3 +526,14 @@ See the third part of [demo project #3](./demo-projects/3-monitoring-third-party
 </details>
 
 *****
+
+<details>
+<summary>Video: 15 - Collect & Expose Metrics with Prometheus Client Library (Monitor own App - Part 1)</summary>
+<br />
+
+Now we want to monitor our own application. There is no exporter available, so we have to define the metrics ourselves. We use our sample Node.js application to demonstrate how this can be done.\
+See the first and second part of [demo project #4](./demo-projects/4-monitoring-own-applications/).
+
+</details>
+
+*****
