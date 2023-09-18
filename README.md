@@ -12,3 +12,4 @@ And finally it contains the following demo projects:
 - [Install Prometheus Stack in Kubernetes](./demo-projects/1-install-prometheus-in-k8s/)
 - [Configure Alerting](./demo-projects/2-alerting/)
 - [Monitoring Third-Party Applications](./demo-projects/3-monitoring-third-party-applications/)
+- [Monitoring Own Applications](./demo-projects/4-monitoring-own-applications/)
