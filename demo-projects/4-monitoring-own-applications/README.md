@@ -106,8 +106,108 @@ npm start
 
  Open the browser and navigate to 'http://localhost:3000'. Press the refresh button several times. Then navigate to 'http://localhost:3000/metrics'. You should see a bunch of default metrics and at the bottom our two custom metrics.
 
-#### Steps to deploy the NodeJS application into Kubernetes cluster 
+#### Steps to deploy the NodeJS application into Kubernetes cluster
+To deploy the application in our K8s cluster we first have to make it available as a Docker image on our private DockerHub repository. Because we are building the Docker image on our local machine haaving an Apple M2 processor (arm64), but the image must run in the EKS cluster (amd64), we have to build the image using `buildx`:
 
+```sh
+cd node-project
+docker buildx create --use
+docker login
+docker buildx build --platform linux/amd64 -t fsiegrist/fesi-repo:bootcamp-node-project-1.0.0 --push .
+```
+
+Now we can define Kubernetes configurations of a deployment and service for out node application. Create a file called `k8s-config.yaml` inside the node-project folder with the following content:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodeapp
+  labels:
+    app: nodeapp
+spec:
+  selector:
+    matchLabels:
+      app: nodeapp
+  template:
+    metadata:
+      labels:
+        app: nodeapp
+    spec:
+      imagePullSecrets:
+      - name: my-registry-key
+      containers:
+      - name: nodeapp
+        image: fsiegrist/fesi-repo:bootcamp-node-project-1.0.0
+        ports:
+        - containerPort: 3000
+        imagePullPolicy: Always  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodeapp
+  labels:
+    app: nodeapp
+spec:
+  type: ClusterIP
+  selector:
+    app: nodeapp
+  ports:
+  - name: service
+    protocol: TCP
+    port: 3000
+    targetPort: 3000
+```
+
+To allow Kubernetes to pull the image from our local repository we have to provide the credentials in a Secret of type `docker-registry`. The secret is referenced from the deployment configuration using the name `my-registry-key` (see attribute 'imagePullSecrets'). So we have to name it like this. Create the Secret using the following command:
+
+```sh
+kubectl create secret docker-registry my-registry-key \
+  --docker-server=docker.io \
+  --docker-username=fsiegrist \
+  --docker-password=<password>
+
+# secret/my-registry-key created
+```
+
+Now we are ready to apply the deployment and service to the cluster:
+```sh
+kubectl apply -f node-project/k8s-config.yaml
+# deployment.apps/nodeapp created
+# service/nodeapp created
+
+kubectl get services
+# NAME       TYPE            CLUSTER-IP         EXTERNAL-IP        PORT(S)        AGE
+# ...
+# nodeapp    ClusterIP       10.100.77.236      <none>             3000/TCP       60s
+# ...
+```
+
+To test the running application and the metrics do a port-forwarding...
+```sh
+kubectl port-forward svc/nodeapp 3000:3000
+# Forwarding from 127.0.0.1:3000 -> 3000
+# Forwarding from [::1]:3000 -> 3000
+```
+... and navigate to 'http://localhost:3000'. You should see the application running. Press the browser refresh button several times and then navigate to 'http://localhost:3000/metrics'. At the end of the metrics list you should see our two metrics:
+
+```
+# HELP http_request_operations_total Total number of Http requests
+# TYPE http_request_operations_total counter
+http_request_operations_total 11
+
+# HELP http_request_duration_seconds Duration of Http requests in seconds
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.1"} 0
+http_request_duration_seconds_bucket{le="0.5"} 0
+http_request_duration_seconds_bucket{le="2"} 1
+http_request_duration_seconds_bucket{le="5"} 3
+http_request_duration_seconds_bucket{le="10"} 8
+http_request_duration_seconds_bucket{le="+Inf"} 8
+http_request_duration_seconds_sum 39.623
+http_request_duration_seconds_count 8
+```
 
 #### Steps to configure Prometheus to scrape the metrics and visualize them in Grafana
 
