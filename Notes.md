@@ -537,3 +537,14 @@ See the first and second part of [demo project #4](./demo-projects/4-monitoring-
 </details>
 
 *****
+
+<details>
+<summary>Video: 16 - Scrape Own Application Metrics & Configure Own Grafana Dashboard (Monitor own App - Part 2)</summary>
+<br />
+
+Now we want to tell Prometheus to scrape the new metrics entpoint of our application. And then we want to create a Grafana dashboard visualizing these metrics.\
+See the third part of [demo project #4](./demo-projects/4-monitoring-own-applications/).
+
+</details>
+
+*****
