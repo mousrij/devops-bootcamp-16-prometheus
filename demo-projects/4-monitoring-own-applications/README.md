@@ -262,3 +262,5 @@ Press 'Run queries to see the result of the query. Press 'Save' in the top right
 
 Let's add a second panel. Click 'Add' and select 'Visualization'. Enter 'Request Duration' as the panel title (in the options on the right), enter `rate(http_request_duration_seconds_sum[2m])` as the query, press 'Run queries' to check the result, press 'Save' and 'Apply' to save the changees and go back to the dashboard. You can rearrange the panels on the dashboard as you like by grabbing them on the top.
 
+Also see the documentation of the [rate function](https://prometheus.io/docs/prometheus/latest/querying/functions/#rate).
+
