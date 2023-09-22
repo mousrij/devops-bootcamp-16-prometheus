@@ -210,4 +210,55 @@ http_request_duration_seconds_count 8
 ```
 
 #### Steps to configure Prometheus to scrape the metrics and visualize them in Grafana
+To inform Prometheus about the new metrics endpoint of our application we have to add an according ServiceMonitor component to the K8s cluster.
+
+Add the following configuration to the `k8s-config.yaml` file:
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: monitoring-node-app
+  labels:
+    release: monitoring
+    app: nodeapp
+spec:
+  endpoints:
+  - path: /metrics
+    port: service
+    targetPort: 3000
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app: nodeapp
+```
+
+Apply the new component to the cluster:
+```sh
+kubectl apply -f k8s-config.yaml
+# servicemonitor.monitoring.coreos.com/monitoring-node-app created
+```
+
+Open the Prometheus UI (Status > Targets) and you should find the new target `serviceMonitor/default/monitoring-node-app/0 (0/1 up)`. At the beginning its state is 'UNKNOWN'. As soon as it got scraped for the first time, the state switches to 'UP'.
+
+Navigate to the main page of the Prometheus UI and enter 'http_request' into the PromQL expression field. In the code completion suggests you should see the four new metrics of our application (all starting with http_request).
+
+And on the Configuration page (Status > Configuration) the `scrape_configs` section contains a new job for our target:
+```
+scrape_configs:
+- job_name: serviceMonitor/default/monitoring-node-app/0
+  honor_timestamps: true
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  metrics_path: /metrics
+  scheme: http
+```
+
+As a final step we want to create a Grafana dashboard to visualize our new metrics. Open Grafana UI, toggle the main menu in the top left corner, select 'Dashboards' and press 'New' and select 'New dashboard'. Press 'Add visualization' and select 'Prometheus' as the data source. Either create a new query with the query builder or directly type in the following query:\
+`rate(http_request_operations_total[2m])`
+
+Press 'Run queries to see the result of the query. Press 'Save' in the top right corner, enter 'Nodeapp Telemetry' as the name of the new dashboard and press 'Save'. Click on the three dots in the top right corner of the new panel, select 'Edit', click on the little `<` (Show options pane)on the top right (next to 'Time series') and enter 'Requests per secon' as the Panel Title. Press 'Apply' in the top right corner.
+
+Let's add a second panel. Click 'Add' and select 'Visualization'. Enter 'Request Duration' as the panel title (in the options on the right), enter `rate(http_request_duration_seconds_sum[2m])` as the query, press 'Run queries' to check the result, press 'Save' and 'Apply' to save the changees and go back to the dashboard. You can rearrange the panels on the dashboard as you like by grabbing them on the top.
 
