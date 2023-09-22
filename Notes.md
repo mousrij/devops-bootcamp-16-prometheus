@@ -548,3 +548,19 @@ See the third part of [demo project #4](./demo-projects/4-monitoring-own-applica
 </details>
 
 *****
+
+*****
+
+<details>
+<summary>Official Best Practices</summary>
+<br />
+
+- Metric and Label Naming: https://prometheus.io/docs/practices/naming/ 
+- Set of guidelines for instrumenting your code: https://prometheus.io/docs/practices/instrumentation/
+- Consoles and Dashboards: https://prometheus.io/docs/practices/consoles/ 
+- Alerting: https://prometheus.io/docs/practices/alerting/
+- On when to use the Pushgateway: https://prometheus.io/docs/practices/pushing/
+
+</details>
+
+*****
