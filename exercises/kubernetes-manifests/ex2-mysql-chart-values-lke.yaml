@@ -1,0 +1,24 @@
+architecture: replication
+auth:
+  rootPassword: secret-root-pass
+  database: my-app-db
+  username: my-user
+  password: my-pass
+
+# enable init container that changes the owner and group of the persistent volume mountpoint to runAsUser:fsGroup
+volumePermissions:
+  enabled: true
+
+secondary:
+  replicaCount: 1
+  persistence:
+    accessModes: ["ReadWriteOnce"]
+    # storage class for LKE volumes
+    storageClass: linode-block-storage
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: monitoring-stack

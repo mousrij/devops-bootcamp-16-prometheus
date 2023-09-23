@@ -53,7 +53,7 @@ kubectl create secret -n my-app docker-registry my-registry-key \
 
 **Execute Ansible playbook to deploy java and mysql apps in k8s cluster**\
 ```sh
-ansible-playbook 1-configure-k8s.yaml
+ansible-playbook ex1-configure-k8s.yaml
 ```
 
 **NOTES:**\
@@ -127,7 +127,7 @@ Set the correct image name "{docker-hub-id}:{repo-name}:{tag}" in "kubernetes-ma
 
 To add metrics scraping to nginx, mysql and java apps, execute ansible playbook:
 ```sh
-ansible-playbook 2-configure-k8s.yaml
+ansible-playbook ex2-configure-k8s.yaml
 ```
 
 Access Prometheus UI and see that new targets for mysql, nginx and your java application have been added. Open the browser and navigate to http://127.0.0.1:9090/targets.
@@ -160,10 +160,10 @@ We are using "release: monitoring-stack" label to add alert rules. This label ma
 
 Execute following to add prometheus alert rules:
 ```sh
-kubectl apply -f kubernetes-manifests/3-nginx-alert-rules.yaml
-kubectl apply -f kubernetes-manifests/3-mysql-alert-rules.yaml
-kubectl apply -f kubernetes-manifests/3-java-alert-rules.yaml
-kubectl apply -f kubernetes-manifests/3-k8s-alert-rules.yaml 
+kubectl apply -f kubernetes-manifests/ex3-nginx-alert-rules.yaml
+kubectl apply -f kubernetes-manifests/ex3-mysql-alert-rules.yaml
+kubectl apply -f kubernetes-manifests/ex3-java-alert-rules.yaml
+kubectl apply -f kubernetes-manifests/ex3-k8s-alert-rules.yaml 
 ```
 
 </details>
@@ -193,9 +193,9 @@ Configure your email account as I show in the monitoring module video 10 - Confi
 
 Execute following to configure alert manager to send notifications:
 ```sh
-kubectl apply -f kubernetes-manifests/4-email-secret.yaml
-kubectl apply -f kubernetes-manifests/4-slack-secret.yaml
-kubectl apply -f kubernetes-manifests/4-alert-manager-configuration.yaml
+kubectl apply -f kubernetes-manifests/ex4-email-secret.yaml
+kubectl apply -f kubernetes-manifests/ex4-slack-secret.yaml
+kubectl apply -f kubernetes-manifests/ex4-alert-manager-configuration.yaml
 ```
 
 </details>
