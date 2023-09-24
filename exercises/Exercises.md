@@ -31,29 +31,63 @@ You can use the Ansible playbook from Ansible exercises 7 & 8 with a few adjustm
 
 **Solution:**
 
-**Create K8s cluster on LKE for example and set kubeconfig file**\
+**Create a K8s cluster on LKE and set the kubeconfig file**\
+Login to your [Linode account](https://cloud.linode.com/), press the blue "Create" button and select "Kubernetes". Enter a cluster label (e.g. 'monitoring'), choose a region close to you (e.g. 'Frankfurt, DE (eu-central)') and select the latest Kubernetes version (e.g. 1.26). Check 'No' for high availability control plane. In the "Add Node Pools" section select the "Shared CPU" tab and add 2 "Linode 4 GB" nodes to the cart. Press the "Create Cluster" button.\
+On the dashboard you can see the two worker nodes (Linodes). Wait until both are up and running.
+
+In the Kubernetes section at the top you can download a 'monitoring-kubeconfig.yaml' file with the credentials and certificates you need to connect to the K8s cluster. Download it and set the environment variable KUBECONFIG on your local machine to this file:
 ```sh
 chmod 400 ~/Downloads/monitoring-kubeconfig.yaml
 export KUBECONFIG=~/Downloads/monitoring-kubeconfig.yaml
+
+# now kubectl commands will be connected with the linode cluster
+kubectl get nodes
+# NAME                            STATUS   ROLES    AGE   VERSION
+# lke132137-194973-0bb2a7520000   Ready    <none>   77s   v1.26.3
+# lke132137-194973-5414aa870000   Ready    <none>   41s   v1.26.3
 ```
 
-**Create docker-registry secret**\
+**Create a docker-registry secret**\
 ```sh
 DOCKER_REGISTRY_SERVER=docker.io
-DOCKER_USER=your dockerID, same as for `docker login`
-DOCKER_EMAIL=your dockerhub email, same as for `docker login`
-DOCKER_PASSWORD=your dockerhub pwd, same as for `docker login`
+DOCKER_USER=fsiegrist
+DOCKER_EMAIL=<your-dockerhub-email>
+DOCKER_PASSWORD=<your-dockerhub-pwd>
 
-kubectl create secret -n my-app docker-registry my-registry-key \
---docker-server=$DOCKER_REGISTRY_SERVER \
---docker-username=$DOCKER_USER \
---docker-password=$DOCKER_PASSWORD \
---docker-email=$DOCKER_EMAIL
+kubectl create secret docker-registry my-registry-key\
+  --docker-server=$DOCKER_REGISTRY_SERVER\
+  --docker-username=$DOCKER_USER\
+  --docker-password=$DOCKER_PASSWORD\
+  --docker-email=$DOCKER_EMAIL
+
+# secret/my-registry-key created
+```
+
+**Build the application and push image to private Docker Registry**
+```sh
+cd bootcamp-java-mysql
+./gradlew build
+
+docker buildx create --use
+docker login
+docker buildx build --platform linux/amd64 -t fsiegrist/fesi-repo:bootcamp-java-mysql-monitoring-1.0 --push .
 ```
 
 **Execute Ansible playbook to deploy java and mysql apps in k8s cluster**\
+Adjust the value of the `hosts` attribute in 'kubernetes-manifests/java-app-ingress.yaml' to the IP address or reverse DNS of one of the nodes in the LKE cluster. The execute the ansible playbook to configure the cluster:
 ```sh
 ansible-playbook ex1-configure-k8s.yaml
+```
+
+After a couple of minutes the mysql and java-app pods should be running:
+```sh
+kubectl get pods
+# NAME                                   READY   STATUS    RESTARTS        AGE
+# java-app-deployment-57d9d54dbb-57cxv   1/1     Running   4 (2m17s ago)   3m35s
+# java-app-deployment-57d9d54dbb-lhq5c   1/1     Running   4 (2m15s ago)   3m35s
+# java-app-deployment-57d9d54dbb-sn949   1/1     Running   5 (96s ago)     3m35s
+# mysql-release-primary-0                1/1     Running   0               3m38s
+# mysql-release-secondary-0              1/1     Running   0               3m38s
 ```
 
 **NOTES:**\

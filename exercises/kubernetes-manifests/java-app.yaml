@@ -18,7 +18,7 @@ spec:
       - name: my-registry-key
       containers:
       - name: javamysqlapp
-        image: nanajanashia/demo-app:java-mysql-app-monitoring
+        image: fsiegrist/fesi-repo:bootcamp-java-mysql-monitoring-1.0
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
