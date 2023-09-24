@@ -68,9 +68,14 @@ kubectl create secret docker-registry my-registry-key\
 cd bootcamp-java-mysql
 ./gradlew build
 
+# build and push the docker image using buildx on an apple M2 machine
 docker buildx create --use
 docker login
 docker buildx build --platform linux/amd64 -t fsiegrist/fesi-repo:bootcamp-java-mysql-monitoring-1.0 --push .
+
+# or conventionally on an amd64 machine
+docker build -t fsiegrist/fesi-repo:bootcamp-java-mysql-monitoring-1.0 .
+docker push fsiegrist/fesi-repo:bootcamp-java-mysql-monitoring-1.0
 ```
 
 **Execute Ansible playbook to deploy java and mysql apps in k8s cluster**\
@@ -118,54 +123,55 @@ Note: as you've learned, we deploy separate exporter applications for different 
 
 **Solution:**
 
-**Deploy promentheus operator**\
+**Deploy promentheus operator**
 ```sh
+# make sure the helm charts repo 'prometheus-community' is available
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
+# create a namespace 'monitoring' and install the prometheus stack in it
 kubectl create namespace monitoring
 helm install monitoring-stack prometheus-community/kube-prometheus-stack -n monitoring
+# NAME: monitoring-stack
+# LAST DEPLOYED: Sun Sep 24 15:32:58 2023
+# NAMESPACE: monitoring
+# STATUS: deployed
+# REVISION: 1
+# NOTES:
+# kube-prometheus-stack has been installed. Check its status by running:
+#   kubectl --namespace monitoring get pods -l "release=monitoring-stack"
 ```
 
-**Access Prometheus UI and view its targets**\
+**Access Prometheus UI and view its targets**
 ```sh
-kubectl port-forward svc/monitoring-stack-kube-prom-prometheus 9090:9090
+kubectl port-forward svc/monitoring-stack-kube-prom-prometheus 9090:9090 -n monitoring
 ```
-Open the browser and navigate to http://127.0.0.1:9090/targets
-
-**Clean up and prepare for new installation**\
-```sh
-helm uninstall mysql-release
-helm uninstall ingress-controller -n ingress
-```
+Open the browser and navigate to [http://127.0.0.1:9090/targets](http://127.0.0.1:9090/targets).
 
 **NOTE:**
-We are using "release: monitoring-stack" label to expose scrape endpoint. This label may change with newer prometheus stack version, so to check which label you need to apply, do the following
-- Get name of the prometheus CRD: `kubectl get prometheuses.monitoring.coreos.com`
-- Print out the ServiceMonitor selector: `kubectl get prometheuses.monitoring.coreos.com {crd-name} -o yaml | grep serviceMonitorSelector -A 2`
-
-**Build and use the correct java-app image with metrics exposed:**\
+We are using the label 'release: monitoring-stack' to expose scrape endpoints. This label may change with newer prometheus stack versions, so to check which label you need to apply, do the following:
 ```sh
-# check out the java app code with prometheus client inside:
-git checkout feature/monitoring
+# get name of the prometheus CRD
+kubectl get prometheus -n monitoring
+# NAME                                    VERSION   DESIRED   READY   RECONCILED   AVAILABLE   AGE
+# monitoring-stack-kube-prom-prometheus   v2.47.0   1         1       True         True        21m
 
-# build a new jar
-./gradlew clean build
-
-# build a docker image
-docker build {docker-hub-id}:{repo-name}:{tag} .
-docker push {docker-hub-id}:{repo-name}:{tag}
+# print out the ServiceMonitor selector
+kubectl get prometheus monitoring-stack-kube-prom-prometheus -n monitoring -o yaml | grep serviceMonitorSelector -A 2
+#   serviceMonitorSelector:
+#     matchLabels:
+#       release: monitoring-stack      <-----
 ```
-Set the correct image name "{docker-hub-id}:{repo-name}:{tag}" in "kubernetes-manifests/java-app.yaml" file.
 
-
-To add metrics scraping to nginx, mysql and java apps, execute ansible playbook:
+**Add metrics scraping to nginx, mysql and java apps**
 ```sh
 ansible-playbook ex2-configure-k8s.yaml
 ```
 
-Access Prometheus UI and see that new targets for mysql, nginx and your java application have been added. Open the browser and navigate to http://127.0.0.1:9090/targets.
-
+Access Prometheus UI and see that new targets for mysql, nginx and your java application have been added. Open the browser and navigate to [http://127.0.0.1:9090/targets](http://127.0.0.1:9090/targets):
+- serviceMonitor/default/java-app-sm/0 (3/3 up)
+- serviceMonitor/default/mysql-release/0 (2/2 up
+- serviceMonitor/ingress/ingress-controller-ingress-nginx-controller/0 (1/1 up)
 
 </details>
 

@@ -10,6 +10,7 @@ volumePermissions:
   enabled: true
 
 secondary:
+  # 1 primary and 2 secondary replicas
   replicaCount: 1
   persistence:
     accessModes: ["ReadWriteOnce"]
@@ -20,5 +21,5 @@ metrics:
   enabled: true
   serviceMonitor:
     enabled: true
-    additionalLabels:
+    labels:
       release: monitoring-stack
