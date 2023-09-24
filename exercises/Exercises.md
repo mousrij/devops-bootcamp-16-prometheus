@@ -193,18 +193,22 @@ Now it's time to configure alerts for critical issues that may happen with any o
 
 **Solution:**
 
-**NOTE:**\
-We are using "release: monitoring-stack" label to add alert rules. This label may change with newer prometheus stack version, so to check which label you need to apply, do the following
-- Get name of the prometheus CRD: `kubectl get prometheuses.monitoring.coreos.com`
-- Print out the alert rule selector: `kubectl get prometheuses.monitoring.coreos.com {crd-name} -o yaml | grep ruleSelector -A 2`
-
-Execute following to add prometheus alert rules:
+Apply the following alert rule configurations to the cluster:
 ```sh
 kubectl apply -f kubernetes-manifests/ex3-nginx-alert-rules.yaml
+# prometheusrule.monitoring.coreos.com/ingress-rules created
+
 kubectl apply -f kubernetes-manifests/ex3-mysql-alert-rules.yaml
+# prometheusrule.monitoring.coreos.com/mysql-rules created
+
 kubectl apply -f kubernetes-manifests/ex3-java-alert-rules.yaml
-kubectl apply -f kubernetes-manifests/ex3-k8s-alert-rules.yaml 
+# prometheusrule.monitoring.coreos.com/java-rules created
+
+kubectl apply -f kubernetes-manifests/ex3-k8s-alert-rules.yaml
+# prometheusrule.monitoring.coreos.com/k8s-rules created
 ```
+
+Access Prometheus UI and see that 5 new alert rules have been added (one for java, k8s and ingress; two for mysql). Open the browser and navigate to [http://127.0.0.1:9090/alerts](http://127.0.0.1:9090/alerts) or [http://127.0.0.1:9090/rules](http://127.0.0.1:9090/rules).
 
 </details>
 
