@@ -1,8 +1,6 @@
 ## Exercises for Module 16 "Monitoring with Prometheus"
 <br />
 
-Use repository: https://gitlab.com/devops-bootcamp3/bootcamp-java-mysql/-/tree/feature/monitoring
-
 **Context**
 
 You and your team are running the following setup in the K8s cluster:
@@ -230,17 +228,28 @@ Note: Of course, in your case, this can be your own email address or your own Sl
 
 **Solution:**
 
-Use the following guide to set up your Slack channel:
-https://www.freecodecamp.org/news/what-are-github-actions-and-how-can-you-automate-tests-and-slack-notifications/
+Use this [freecodecamp](https://www.freecodecamp.org/news/what-are-github-actions-and-how-can-you-automate-tests-and-slack-notifications/) guide to set up your Slack channel.
 
-Configure your email account as I show in the monitoring module video 10 - Configure Alertmanager with Email Receiver.
+Configure your email account as described in the [demo project](../demo-projects/2-alerting/). Copy the app-password value and write it into the `kubernetes-manifests/ex4-email-secret.yaml` Secret configuration (base64 encoded).
 
-Execute following to configure alert manager to send notifications:
+Execute the following commands to configure the alert manager to send notifications:
 ```sh
 kubectl apply -f kubernetes-manifests/ex4-email-secret.yaml
+# secret/gmail-auth created
+
 kubectl apply -f kubernetes-manifests/ex4-slack-secret.yaml
+# secret/slack-auth created
+
 kubectl apply -f kubernetes-manifests/ex4-alert-manager-configuration.yaml
+# alertmanagerconfig.monitoring.coreos.com/main-rules-alert-config created
 ```
+
+Create a port-forwarding for the Alertmanager UI:
+```sh
+kubectl port-forward svc/monitoring-stack-kube-prom-alertmanager -n monitoring 9093:9093
+```
+
+Open the browser and navigate to [http://localhost:9093/#/status](http://localhost:9093/#/status) to see the added routes and receivers in the configuration of the Alertmanager.
 
 </details>
 

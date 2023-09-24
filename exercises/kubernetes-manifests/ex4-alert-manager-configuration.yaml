@@ -26,14 +26,15 @@ spec:
   receivers:
   - name: 'email'
     emailConfigs:
-    - to: 'email@example.come'
-      from: 'email@example.come'
+    - to: 'felix.siegrist@gmail.com'
+      from: 'alertmanager@prometheus.com'
       smarthost: 'smtp.gmail.com:587'
-      authUsername: 'email@example.come'
-      authIdentity: 'email@example.come'
+      authUsername: 'felix.siegrist@gmail.com'
+      authIdentity: 'felix.siegrist@gmail.com'
       authPassword:
        name: gmail-auth
        key: password
+
   - name: 'slack'
     slackConfigs:
     - channel: '#prometheus-alerts' # Slack channel name, where you will receive the alerts
