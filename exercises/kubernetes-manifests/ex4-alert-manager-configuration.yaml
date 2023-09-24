@@ -26,14 +26,14 @@ spec:
   receivers:
   - name: 'email'
     emailConfigs:
-    - to: 'felix.siegrist@gmail.com'
+    - to: '<gmail-address>'
       from: 'alertmanager@prometheus.com'
       smarthost: 'smtp.gmail.com:587'
-      authUsername: 'felix.siegrist@gmail.com'
-      authIdentity: 'felix.siegrist@gmail.com'
+      authUsername: '<gmail-address>'
+      authIdentity: '<gmail-address>'
       authPassword:
-       name: gmail-auth
-       key: password
+        name: gmail-auth
+        key: password
 
   - name: 'slack'
     slackConfigs:

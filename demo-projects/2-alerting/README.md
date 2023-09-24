@@ -340,17 +340,17 @@ receivers:
 - name: monitoring/main-rules-alert-config/email  # <--
   email_configs:
   - send_resolved: false  # <-- if set to true, an email is sent when the problem has been resolved
-    to: felix.siegrist@gmail.com
+    to: <gmail-address>
     from: alertmanager@prometheus.com
     hello: localhost
     smarthost: smtp.gmail.com:587
-    auth_username: felix.siegrist@gmail.com
+    auth_username: <gmail-address>
     auth_password: <secret>
-    auth_identity: felix.siegrist@gmail.com
+    auth_identity: <gmail-address>
     headers:  # <--
       From: alertmanager@prometheus.com
       Subject: '{{ template "email.default.subject" . }}'
-      To: felix.siegrist@gmail.com
+      To: <gmail-address>
     html: '{{ template "email.default.html" . }}'
     require_tls: true
 templates:
