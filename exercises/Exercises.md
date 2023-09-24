@@ -230,7 +230,7 @@ Note: Of course, in your case, this can be your own email address or your own Sl
 
 Use this [freecodecamp](https://www.freecodecamp.org/news/what-are-github-actions-and-how-can-you-automate-tests-and-slack-notifications/) guide to set up your Slack channel.
 
-Configure your email account as described in the [demo project](../demo-projects/2-alerting/). Copy the app-password value and write it into the `kubernetes-manifests/ex4-email-secret.yaml` Secret configuration (base64 encoded).
+Configure your email account as described in the [demo project #2](../demo-projects/2-alerting/). Copy the app-password value and write it into the `kubernetes-manifests/ex4-email-secret.yaml` Secret configuration (base64 encoded).
 
 Execute the following commands to configure the alert manager to send notifications:
 ```sh
