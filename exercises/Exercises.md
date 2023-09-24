@@ -170,7 +170,7 @@ ansible-playbook ex2-configure-k8s.yaml
 
 Access Prometheus UI and see that new targets for mysql, nginx and your java application have been added. Open the browser and navigate to [http://127.0.0.1:9090/targets](http://127.0.0.1:9090/targets):
 - serviceMonitor/default/java-app-sm/0 (3/3 up)
-- serviceMonitor/default/mysql-release/0 (2/2 up
+- serviceMonitor/default/mysql-release/0 (2/2 up)
 - serviceMonitor/ingress/ingress-controller-ingress-nginx-controller/0 (1/1 up)
 
 </details>
