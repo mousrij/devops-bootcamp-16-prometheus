@@ -219,6 +219,10 @@ There are
 - a bunch of config maps (`kubectl get configmaps -n monitoring`)
 - some secrets (`kubectl get secrets -n monitoring`)
 - and some CRDs (custom resource definition i.e. extension of the K8s API; `kubectl get crds -n monitoring`)
+- Node Exporter DeamonSet 
+  - Daemon set runs on every worker node 
+  - Connects to server itself
+  - Translates worker node metrics to prometheus metrics 'Load on server', 'Cpu usage' ... and transforms them to prometheus metrcis in order to can scrept
 
 With the Prometheus monitoring stack the worker nodes and the Kubernetes components are monitored out of the box.
 
@@ -230,37 +234,41 @@ kubectl describe statefulset alertmanager-monitoring-kube-prometheus-alertmanage
 kubectl describe deployment monitoring-kube-prometheus-operator -n monitoring > prometheus-stack/operator.yaml
 ```
 
-In `prometheus-stack/prometheus.yaml` we can have a look at the containers. There is the `prometheus` container itself and its mounted volumes containing configuration files (what endpoints to scrape, alerting rules). The `config-reloader` is a side-car container in the pod and it's responsible to reload the configuration files when they change. So when we add a new target to be scraped or a new alert rule to consider, Prometheus will automatically reload the configuration without us having to restart Prometheus.
+In `prometheus-stack/prometheus.yaml` we can have a <u>look at the containers</u>. There is the `prometheus` container itself and its mounted volumes containing configuration files (what endpoints to scrape, alerting rules). The `config-reloader` is a side-car container in the pod and it's responsible to reload the configuration files when they change. So when we add a new target to be scraped or a new alert rule to consider, Prometheus will automatically reload the configuration without us having to restart Prometheus.
 
 To get the content of the configurations, you have to find out which volume contains the configuration and which configmap or secret was the source for the volume.
 _prometheus-stack/prometheus.yaml_
 ```yaml
-...
-  Containers:
-   prometheus:
     ...
-   config-reloader:
+      Containers:
+       prometheus:
+
+        # same as config-reloader
+        ...
+       config-reloader: # responsable for reloading, when configuration files changes for prometheus to pick up new changes (where ? > the mounts )
+        ...
+        Args:
+          ...
+          --reload-url=http://127.0.0.1:9000/-/reload
+          --config-file=/etc/prometheus/config/prometheus.yaml.gz # <--
+          --watched-dir=/etc/prometheus/rules/prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0 # <-- watch for any updates
+          ...
+        Mounts:
+                                                   # what we need to know here 
+          /etc/prometheus/config from config (rw)  # <-- 1-what endpoints to scrape ? 2-addresses of applications (expose/metrics)
+          /etc/prometheus/rules/prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0 from prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0 (rw)  # <-- rule configuration file (alert rules, etc)
+          ...
+      Volumes:
+        config:  # <--
+          Type:        Secret (a volume populated by a Secret)
+          SecretName:  prometheus-monitoring-kube-prometheus-prometheus
+          Optional:    false
+          ...
+        prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0:  # <--
+          Type:      ConfigMap (a volume populated by a ConfigMap)
+          Name:      prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0
+          Optional:  false
     ...
-    Args:
-      ...
-      --config-file=/etc/prometheus/config/prometheus.yaml.gz # <--
-      --watched-dir=/etc/prometheus/rules/prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0 # <--
-      ...
-    Mounts:
-      /etc/prometheus/config from config (rw)  # <--
-      /etc/prometheus/rules/prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0 from prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0 (rw)  # <--
-      ...
-  Volumes:
-   config:  # <--
-    Type:        Secret (a volume populated by a Secret)
-    SecretName:  prometheus-monitoring-kube-prometheus-prometheus
-    Optional:    false
-    ...
-   prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0:  # <--
-    Type:      ConfigMap (a volume populated by a ConfigMap)
-    Name:      prometheus-monitoring-kube-prometheus-prometheus-rulefiles-0
-    Optional:  false
-...
 ```
 
 ```sh
@@ -355,3 +363,6 @@ data:
           severity: critical
     ...
 ```
+### No need for all theses, Just you must know : 
+  - How to add/adjust alert rules ? 
+  - How to adjust prometheus configuration ? to add new endpoint for scrapping 
