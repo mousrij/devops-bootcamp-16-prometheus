@@ -24,15 +24,23 @@ Prometheus
 ### Architecture
 The `Prometheus Server` is the main component that does the actual monitoring work. It consists of a `Data Retrieval Worker` which scrapes the metrics data from applications, servers or services and stores it in a `Time Series Database`. It also contains an `HTTP Server` which accepts PromQL queries and is used by other components like the `Prometheus Web UI` or `Grafana`.
 
+<img src="./images/image.png"/>
+
 The applications, servers or services that are monitored by Prometheus are called `Targets`. And the units of these targets that are monitored (like CPU status, memory usage, disk space, requests count, exceptions count, request duration, etc.) are called `Metrics`.
 
 The metrics are stored in human readable format. The contain a `Type` and a `Help` attribute. The type is one of the following:
+--The type: 
 - Counter: how many times x happened
 - Gauge: what is the current value of x now
-- Histogramm: how long or how big
-The help attribute is just a description of what the metric is.
+- Histogramm: how long or how big.
+
+--The help attribute is just a description of what the metric is.
+
+<img src="./images/image copy.png"/>
 
 Prometheus collects the metrics data from targets by pulling that data from HTTP endpoints (`[host-address]/metrics`] the targets expose. The result returned by these endpoints must be in a format that Prometheus understands. Some services expose `/metrics` endpoints by default, others need another component for that, so called `Exporters`. Exporters help in exporting existing metrics from third-party systems as Prometheus metrics. An exporter is a service that fetches metrics from a target and converts the data and exposes them as Prometheus metrics. Prometheus can then scrape this endpoint as usual. Some exporters are maintained as part of the official Prometheus organization, others are externally contributed and maintained.
+<img src="./images/image copy2.png"/>
+
 
 For example if you want to monitor a Linux server, you
 - download a node exporter
@@ -41,16 +49,24 @@ For example if you want to monitor a Linux server, you
 - and exposes a /metrics endpoint
 - you configure Prometheus to scrape this endpoint
 
-Exporters are often available as Docker images. If you want to monitor a MySQL database running in a pod inside a Kubernetes cluster, you can add a mysql exporter as a sidecar to that pod. Prometheus also provides monitoring of K8s cluster node resources out-of-the-box.
+Exporters are often available as Docker images. If you want to monitor a MySQL database running in a pod inside a Kubernetes cluster, you can add a mysql exporter as a `sidecar` to that pod. Prometheus also provides monitoring of K8s cluster node resources out-of-the-box.
 
 To monitor your own application, Prometheus provides client libraries for many different languages, that allow you to define and expose internal metrics via an HTTP endpoint on your application's instance.
+
+<img src="./images/image copy 3.png" />
 
 If the number of targets to be monitored increases and one Prometheus server instance is no longer sufficient for scraping all the metrics endpoints, you can start additional Prometheus servers. These servers can then build a Prometheus federation wherein a Prometheus server can scrape data from other Prometheus servers.
 
 When a target only runs for a short time, shorter than the scraping interval (e.g. a short-living batch job), it is also possible to define a `Push Gateway` the short-living target pushes its metrics to. Prometheus then collects the metrics from this gateway at a later time.
+<img src="./images/image copy 4.png" />
+
+## How does prometheus know what to scrape and when ? 
+
+
 
 ### Configuring Prometheus
-You write your configuration in a `prometheus.yml` file to let Prometheus know what to scrape (which targets) and when (at what interval). Targets are discovered via a service discovery mechanism.
+You write your configuration in a `prometheus.yml` file to let Prometheus know what to scrape (which targets) and when (at what interval). 
+Targets are discovered via a service discovery mechanism.
 
 Example Config File:
 ```yaml
@@ -65,10 +81,11 @@ rule_files:
   - second.rules
 
 # what resources Prometheus monitors
+# Prometheus has its own / metrics endpoint 
 scrape_configs:
   - job_name: prometheus
     static_configs:
-      - targets: ['localhost:9090']  # Prometheus has its own /metrics endpoint
+      - targets: ['localhost:9090']  # Prometheus has its own /metrics endpoint   
   - job_name: node_exporter
     scrape_interval: 1m
     scrape_timeout: 1m
@@ -102,6 +119,10 @@ Options to view results are:
 - Prometheus Web UI
 - Use a more powerful visualization tool, e.g. Grafana
 
+
+### Prometheus Federation 
+<img src="./images/image copy 5.png">
+<img src="./images/image copy 6.png">
 
 </details>
 
