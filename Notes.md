@@ -39,7 +39,7 @@ The metrics are stored in human readable format. The contain a `Type` and a `Hel
 <img src="./images/image copy.png"/>
 
 Prometheus collects the metrics data from targets by pulling that data from HTTP endpoints (`[host-address]/metrics`] the targets expose. The result returned by these endpoints must be in a format that Prometheus understands. Some services expose `/metrics` endpoints by default, others need another component for that, so called `Exporters`. Exporters help in exporting existing metrics from third-party systems as Prometheus metrics. An exporter is a service that fetches metrics from a target and converts the data and exposes them as Prometheus metrics. Prometheus can then scrape this endpoint as usual. Some exporters are maintained as part of the official Prometheus organization, others are externally contributed and maintained.
-<img src="./images/image copy2.png"/>
+<img src="./images/image copy 2.png"/>
 
 
 For example if you want to monitor a Linux server, you
@@ -154,7 +154,7 @@ In the [first demo project](./demo-projects/1-install-prometheus-in-k8s/) we
 <summary>Video: 3 - Data Visualization with Prometheus UI</summary>
 <br />
 
-With monitoring we want to notice when something unexpected happens, i.e. we want to observe anomalies (CPU spikes, insufficient storage, high load, unauthorized requests, etc.). And then we want to react accordingly. Visualizing the monitored data can help a lot in these tasks.
+With monitoring we want to notice when something unexpected happens, i.e. we <u>want to observe anomalies</u> (CPU spikes, insufficient storage, high load, unauthorized requests, etc.). And then we want to react accordingly. Visualizing the monitored data can help a lot in these tasks.
 
 ### Prometheus UI
 After having deployed the Prometheus monitoring stack, you can setup port forwarding for the service `service/monitoring-kube-prometheus-prometheus`:
@@ -185,7 +185,7 @@ scrape_configs:
 ```
 
 What is the concept of a `job` in Prometheus? A target may have multiple endpoints (aka instances). And a collection of such instances with the same purpose is called a 'job'. 
-
+<img src="./images/image copy 7.png">
 Prometheus UI can be helpful to debug the configuration. But it is not really helpful in visualizing anomalies. Grafana, which is discussed in the next video, is much better for that purpose.
 
 </details>
