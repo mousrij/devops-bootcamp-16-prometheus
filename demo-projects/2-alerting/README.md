@@ -13,8 +13,9 @@ Configure our Monitoring Stack to notify us whenever CPU usage exceeds 50% or a 
 - Configure Alert Rules in Prometheus Server
 - Configure Alertmanager with Email Receiver
 
-
-#### Steps to configure Alert Rules in Prometheus Server
+<details>
+  <summary>#### 1-Steps to configure Alert Rules in Prometheus Server</summary>
+  
 Create a file called `alert-rules.yaml` and add the first alert rule definition (CPU usage exceeds 50%):
 ```yaml
 name: HostHighCpuLoad
@@ -137,8 +138,10 @@ Delete the pod when you're done:
 ```sh
 kubectl delete pod cpustress
 ```
-
-#### Steps to configure Alertmanager with Email Receiver
+</details>
+<details>
+  <summary>####2-Steps to configure Alertmanager with Email Receiver</summary>
+  
 When you inspect the file [alertmanager.yaml](../1-install-prometheus-in-k8s/prometheus-stack/alertmanager.yaml) we created in demo project #1 by inspecting the stateful-set `alertmanager-monitoring-kube-prometheus-alertmanager`, you can find a volume called `config-volume` and see that it's holding the value of the Secret `alertmanager-monitoring-kube-prometheus-alertmanager-generated`. Here we can find the alertmanager configuration:
 
 ```sh
@@ -504,3 +507,5 @@ Now we can delete the cpustress pod to stop the alerts:
 ```sh
 kubectl delete pod cpustress
 ```
+
+</details>
