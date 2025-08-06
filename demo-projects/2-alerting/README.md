@@ -142,7 +142,8 @@ kubectl delete pod cpustress
 <details>
   <summary>####2-Steps to configure Alertmanager with Email Receiver</summary>
   
-When you inspect the file [alertmanager.yaml](../1-install-prometheus-in-k8s/prometheus-stack/alertmanager.yaml) we created in demo project #1 by inspecting the stateful-set `alertmanager-monitoring-kube-prometheus-alertmanager`, you can find a volume called `config-volume` and see that it's holding the value of the Secret `alertmanager-monitoring-kube-prometheus-alertmanager-generated`. Here we can find the alertmanager configuration:
+First we need to know where the configuration reside ?   
+When you inspect the file [alertmanager.yaml](../1-install-prometheus-in-k8s/prometheus-stack/alertmanager.yaml) we created in demo project #1 by inspecting the stateful-set `alertmanager-monitoring-kube-prometheus-alertmanager`, you can find a volume mounted called `config-volume` and see that it's holding the value of the Secret `alertmanager-monitoring-kube-prometheus-alertmanager-generated`. Here we can find the alertmanager configuration:
 
 ```sh
 kubectl get secret alertmanager-monitoring-kube-prometheus-alertmanager-generated -n monitoring -o yaml | less
@@ -212,6 +213,8 @@ As you see this is pretty much the same content that was displayed in the Alertm
 
 But again we don't have to adjust this configuration directly, but rather use a custom K8s compontent `AlertmanagerConfig` that is made available by the Prometheus operator.
 
+ [documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/4.13/html/monitoring_apis/alertmanagerconfig-monitoring-coreos-com-v1beta1)
+
 So create a file called `alert-manager-configuration.yaml` and add the following content:
 ```yaml
 apiVersion: monitoring.coreos.com/v1alpha1  # <-- the version may change to v1 in the near future
@@ -221,16 +224,7 @@ metadata:
   namespace: monitoring
 spec:
   route:
-    receiver: 'email'
-    repeatInterval: 30m
-    routes:
-    - matchers:
-      - name: alertname
-        value: HostHighCpuLoad
-    - matchers:
-      - name: alertname
-        value: KubernetesPodCrashLooping
-      repeatInterval: 10m
+    ...
   receivers:
   - name: 'email'
     emailConfigs:
@@ -262,6 +256,43 @@ data:
 We use our gmail account as an SMTP server to send e-mails. For the alertmanager to be able to authenticate with the server we need to configure the account for 2 factor authentication and add/generate an app password which we will then use in the Secret referenced from the AlertmanagerConfig.
 
 Login to your gmail account, click on the profile circle in the right upper corner, press "Manage your Google Account", click on "Security" in the menu on the left, scroll down to the "How you sign in to Google" section and click on the "2-Step Verification" area, turn it on and configure a second factor if it is not yet activated. To generate an App password, type "App password" in the search bar at the top of the page, select 'App passwords', click on 'Choose app' > 'Other' and type in 'K8s Prometheus Alertmanager', click on "Generate", copy the value and write it into the above Secret configuration (base64 encoded).
+
+for test purposes : otherwise you can swith it back to on and use 2 factor authentication 
+<img src="./image.png" />
+
+now we need to add route attribute 
+```yaml
+apiVersion: monitoring.coreos.com/v1alpha1  # <-- the version may change to v1 in the near future
+kind: AlertmanagerConfig
+metadata:
+  name: main-rules-alert-config
+  namespace: monitoring
+spec:
+  route:
+    receiver: 'email'                                #2 now we can configure this to a receiver : email and you can be selective
+    repeatInterval: 30m                              # if the issue isn't resolve resend after 30 min
+    routes:                                          #1 do this firste
+    - matchers: 
+      - name: alertname                              # name of the alert
+        value: HostHighCpuLoad
+    - matchers:                                      #2nd alert
+      - name: alertname
+        value: KubernetesPodCrashLooping
+      repeatInterval: 10m                             # this one is important 
+  receivers:
+  - name: 'email'
+    emailConfigs:
+    - to: 'email@example.come'
+      from: 'email@example.come'
+      smarthost: 'smtp.gmail.com:587'
+      authUsername: 'email@example.come'
+      authIdentity: 'email@example.come'
+      authPassword:
+       name: gmail-auth
+       key: password
+```
+
+
 
 Apply the two configuration files to the K8s cluster:
 ```sh
