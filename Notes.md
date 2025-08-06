@@ -454,13 +454,15 @@ See the finish of [demo project #2](./demo-projects/2-alerting/).
 <summary>Video: 12 - Monitor Third-Party Applications</summary>
 <br />
 
+<img src="./images/image copy 8.png"/>
 So far we are monitoring Kubernetes components, the resource consumption on the nodes and the Prometheus stack itself. But we still don't monitor our own application (the online shop microservices) or third-party applications like Redis. In this video we're going to learn how to monitor the latter.
 
 We do not just want to know whether the Redis pod is running, but rather monitor the Redis application itself within the pod. For this purpose there are [Prometheus Exporters](https://prometheus.io/docs/instrumenting/exporters/).
 
 An exporter gets metrics data from the service, translates these service-specific metrics to Prometheus understandable metrics and exposes these translated metrics under a `/metrics` endpoint. Prometheus then scrapes this endpoint.
-
+<img src="./images/image copy 9.png"/>
 When we deploy a new exporter we need to tell Prometheus that there is a new endpoint to be scraped. This task can be automated by deploying a custom K8s component of kind `ServiceMonitor`. The ServiceMonitor component deployed together with the exporter just needs to have a label `release` with the value `monitoring` to be detected by Prometheus.
+<img src="./images/image copy 10.png"/>
 
 ```sh
 kubectl get servicemonitor -n monitoring

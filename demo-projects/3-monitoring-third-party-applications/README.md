@@ -20,8 +20,9 @@ Monitor Redis by using Prometheus Exporter
 
 #### Steps to deploy Redis service in our cluster
 The Redis service was already deployed as part of the online shop microservices application, so there's nothing left to do.
+<details>
+  <summary>####1- Steps to deploy Redis exporter using Helm Chart</summary>
 
-#### Steps to deploy Redis exporter using Helm Chart
 The most popular Redis exporter is available at [https://github.com/oliver006/redis_exporter](https://github.com/oliver006/redis_exporter). Since we want to deploy it in a Kubernetes cluster we are going to use a Helm chart to do this.
 
 There are different ways to find the chart:
@@ -121,8 +122,10 @@ kubectl get servicemonitor redis-exporter-prometheus-redis-exporter -o yaml
 ```
 
 Open the Prometheus UI in the browser and select Status > Targets. You should see a new target called 'serviceMonitor/default/redis-exporter-prometheus-redis-exporter/0 (1/1 up)' with a 'Last Scrape' time of something like '28.127s ago' which means that Prometheus detected the new metrics endpoint and successfully scraped it. If you type 'redis' into the query execution input field, you should see all the metrics starting with redis (make sure the 'Enable autocomplete' checkbox is checked), e.g. 'redis_connected_clients'.
+</details>
 
-#### Steps to configure alert rules for Redis
+<details>
+  <summary>#### Steps to configure alert rules for Redis</summary>
 We want to be alerted when Redis is down or when it is running out of connections. We could write alert rules for these purposes on our own, or we can see if they are available in a public collection of already written useful alert rules:
 - [https://github.com/samber/awesome-prometheus-alerts](https://github.com/samber/awesome-prometheus-alerts)
 - [https://samber.github.io/awesome-prometheus-alerts/](https://samber.github.io/awesome-prometheus-alerts/)
@@ -185,8 +188,11 @@ kubectl scale deployment rediscart --replicas=0
 In the [values.yaml](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-redis-exporter/values.yaml) file of the redis-exporter helm chart we can see in the 'serviceMonitor' section that the default scrape interval is '30s'. So after 30 seconds we should see in the Prometheus UI (Alerts) that the RedisDown alert is firing.
 
 After restarting the redis pod with `kubectl scale deployment rediscart --replicas=1` and another 30 seconds, the alert state should go back to inactive.
+</details>
 
-#### Steps to import Grafana dashboard for Redis
+<details>
+
+  <summary>#### Steps to import Grafana dashboard for Redis</summary>
 To better analyze an issue we were alerted about, we want to visualize the metrics data in Grafana. As with the alert rules we can either manually create a Redis dashboard in Grafana ourselves, or we can use a public available Grafana dashboard for Redis metrics.
 
 On [Grafana Labs](https://grafana.com/grafana/dashboards/) you can look up existing dashboards. Search for 'redis' and make sure to select a dashboard that is based on the metrics of our [redis-exporter](https://github.com/oliver006/redis_exporter). In our case it is the ['Redis Dashboard for Prometheus Redis Exporter 1.x'](https://grafana.com/grafana/dashboards/763-redis-dashboard-for-prometheus-redis-exporter-1-x/). Copy the dashboard ID (763). Open the Grafana UI (http://localhost:8080/dashboards), click on the "+" button in the top right corner and select "Import dashboard". Paste the dashboard ID into the "Import via grafana.com" field and press "Load". Select "Prometheus" as the data source and press "Import".
@@ -224,3 +230,4 @@ kubectl describe service redis-exporter-prometheus-redis-exporter
 # Session Affinity:  None
 # Events:            <none>
 ```
+</details>
