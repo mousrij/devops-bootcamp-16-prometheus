@@ -127,8 +127,8 @@ Open the Prometheus UI in the browser and select Status > Targets. You should se
 <details>
   <summary>#### Steps to configure alert rules for Redis</summary>
 We want to be alerted when Redis is down or when it is running out of connections. We could write alert rules for these purposes on our own, or we can see if they are available in a public collection of already written useful alert rules:
-- [https://github.com/samber/awesome-prometheus-alerts](https://github.com/samber/awesome-prometheus-alerts)
-- [https://samber.github.io/awesome-prometheus-alerts/](https://samber.github.io/awesome-prometheus-alerts/)
+- [samber/awesome-prometheus-alerts] (https://github.com/samber/awesome-prometheus-alerts)
+- [samber.github.io/awesome-prometheus-alerts] (https://samber.github.io/awesome-prometheus-alerts/)
 
 The rules in the [redis section](https://samber.github.io/awesome-prometheus-alerts/rules#redis) are based on the metrics provided by the redis exporter we used and can therefore be used in our deployment. The first rule `RedisDown` is what we need, so lets copy it, create a file called `redis-rules.yaml` and paste it in there:
 
