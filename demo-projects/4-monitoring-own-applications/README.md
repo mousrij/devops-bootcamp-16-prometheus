@@ -212,6 +212,8 @@ http_request_duration_seconds_count 8
 #### Steps to configure Prometheus to scrape the metrics and visualize them in Grafana
 To inform Prometheus about the new metrics endpoint of our application we have to add an according ServiceMonitor component to the K8s cluster.
 
+<img src="./image.png" />
+
 Add the following configuration to the `k8s-config.yaml` file:
 ```yaml
 apiVersion: monitoring.coreos.com/v1
